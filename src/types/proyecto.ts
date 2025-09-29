@@ -9,7 +9,7 @@ export type TipoPedidoCobertura =
 
 export type PedidoCobertura = {
 	id: string;
-	tipo: TipoPedidoCobertura;
+	tipo: string;
 	descripcion: string;
 	monto?: number;
 	moneda?: string;

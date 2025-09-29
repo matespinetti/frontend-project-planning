@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { useFormContext, useFieldArray } from "react-hook-form";
 import {
 	Dialog,
 	DialogContent,
@@ -13,9 +11,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import {
-	Form,
 	FormControl,
-	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -26,68 +22,80 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { PedidosSection } from "./pedidos-section";
-import type { EtapaProyecto, PedidoCobertura } from "@/types/proyecto";
-import { EtapaFormValues, etapaSchema } from "@/schemas/etapa";
+import type { EtapaProyecto } from "@/types/proyecto";
+import type { ProyectoFormValues, EtapaFormValues } from "@/schemas/proyecto";
 
 interface EtapaDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
-	onSave: (etapa: EtapaProyecto) => void;
-	etapa?: EtapaProyecto | null;
+	onSave: () => void;
+	etapaIndex?: number | null; // Index para editar, null para agregar
 }
 
 export function EtapaDialog({
 	open,
 	onOpenChange,
 	onSave,
-	etapa,
+	etapaIndex,
 }: EtapaDialogProps) {
-	const [pedidos, setPedidos] = useState<PedidoCobertura[]>([]);
-
-	const form = useForm<EtapaFormValues>({
-		resolver: zodResolver(etapaSchema),
-		defaultValues: {
-			nombre: "",
-			descripcion: "",
-			fecha_inicio: "",
-			fecha_fin: "",
-		},
+	const form = useFormContext<ProyectoFormValues>();
+	const [currentEtapa, setCurrentEtapa] = useState<EtapaFormValues>({
+		id: "",
+		nombre: "",
+		descripcion: "",
+		fecha_inicio: "",
+		fecha_fin: "",
+		pedidos: [],
 	});
 
 	useEffect(() => {
-		if (etapa) {
-			form.reset({
-				nombre: etapa.nombre,
-				descripcion: etapa.descripcion,
-				fecha_inicio: etapa.fecha_inicio,
-				fecha_fin: etapa.fecha_fin,
-			});
-			setPedidos(etapa.pedidos || []);
-		} else {
-			form.reset({
-				nombre: "",
-				descripcion: "",
-				fecha_inicio: "",
-				fecha_fin: "",
-			});
-			setPedidos([]);
+		if (open) {
+			if (etapaIndex !== null && etapaIndex !== undefined) {
+				// Modo edición
+				const etapas = form.getValues("etapas");
+				const etapa = etapas[etapaIndex];
+				if (etapa) {
+					setCurrentEtapa(etapa);
+				}
+			} else {
+				// Modo agregar
+				setCurrentEtapa({
+					id: crypto.randomUUID(),
+					nombre: "",
+					descripcion: "",
+					fecha_inicio: "",
+					fecha_fin: "",
+					pedidos: [],
+				});
+			}
 		}
-	}, [etapa, form, open]);
+	}, [open, etapaIndex, form]);
 
-	const handleSubmit = (e: React.FormEvent) => {
-		e.preventDefault();
-		e.stopPropagation();
+	const handleSave = () => {
+		const etapas = form.getValues("etapas") || [];
 
-		form.handleSubmit((data) => {
-			const etapaData: EtapaProyecto = {
-				id: etapa?.id || crypto.randomUUID(),
-				...data,
-				pedidos,
-			};
-			onSave(etapaData);
-			form.reset();
-			setPedidos([]);
-		})(e);
+		if (etapaIndex !== null && etapaIndex !== undefined) {
+			// Editar etapa existente
+			const updatedEtapas = [...etapas];
+			updatedEtapas[etapaIndex] = currentEtapa;
+			form.setValue("etapas", updatedEtapas, { shouldValidate: true });
+		} else {
+			// Agregar nueva etapa
+			form.setValue("etapas", [...etapas, currentEtapa], {
+				shouldValidate: true,
+			});
+		}
+
+		onSave();
+		onOpenChange(false);
+	};
+
+	const updateEtapaField = (field: keyof EtapaFormValues, value: any) => {
+		setCurrentEtapa((prev) => ({ ...prev, [field]: value }));
+	};
+
+	const updatePedidos = (pedidos: any[]) => {
+		setCurrentEtapa((prev) => ({ ...prev, pedidos }));
 	};
 
 	return (
@@ -95,104 +103,105 @@ export function EtapaDialog({
 			<DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle>
-						{etapa ? "Editar Etapa" : "Agregar Nueva Etapa"}
+						{etapaIndex !== null && etapaIndex !== undefined
+							? "Editar Etapa"
+							: "Agregar Nueva Etapa"}
 					</DialogTitle>
 					<DialogDescription>
 						Define la etapa del proyecto y sus pedidos de cobertura
 					</DialogDescription>
 				</DialogHeader>
 
-				<Form {...form}>
-					<form onSubmit={handleSubmit} className="space-y-6">
-						{/* Nombre */}
-						<FormField
-							control={form.control}
-							name="nombre"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Nombre de la Etapa *</FormLabel>
-									<FormControl>
-										<Input
-											placeholder="Ej: Evaluación estructural"
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-
-						{/* Descripción */}
-						<FormField
-							control={form.control}
-							name="descripcion"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Descripción *</FormLabel>
-									<FormControl>
-										<Textarea
-											placeholder="Describe las actividades de esta etapa..."
-											className="min-h-[80px]"
-											{...field}
-										/>
-									</FormControl>
-									<FormMessage />
-								</FormItem>
-							)}
-						/>
-
-						{/* Fechas */}
-						<div className="grid grid-cols-2 gap-4">
-							<FormField
-								control={form.control}
-								name="fecha_inicio"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Fecha de Inicio *</FormLabel>
-										<FormControl>
-											<Input type="date" {...field} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
+				<div className="space-y-6">
+					{/* Nombre */}
+					<div>
+						<FormLabel>Nombre de la Etapa *</FormLabel>
+						<FormControl>
+							<Input
+								placeholder="Ej: Evaluación estructural"
+								value={currentEtapa.nombre}
+								onChange={(e) =>
+									updateEtapaField("nombre", e.target.value)
+								}
 							/>
+						</FormControl>
+					</div>
 
-							<FormField
-								control={form.control}
-								name="fecha_fin"
-								render={({ field }) => (
-									<FormItem>
-										<FormLabel>Fecha de Fin *</FormLabel>
-										<FormControl>
-											<Input type="date" {...field} />
-										</FormControl>
-										<FormMessage />
-									</FormItem>
-								)}
+					{/* Descripción */}
+					<div>
+						<FormLabel>Descripción *</FormLabel>
+						<FormControl>
+							<Textarea
+								placeholder="Describe las actividades de esta etapa..."
+								className="min-h-[80px]"
+								value={currentEtapa.descripcion}
+								onChange={(e) =>
+									updateEtapaField(
+										"descripcion",
+										e.target.value
+									)
+								}
 							/>
+						</FormControl>
+					</div>
+
+					{/* Fechas */}
+					<div className="grid grid-cols-2 gap-4">
+						<div>
+							<FormLabel>Fecha de Inicio *</FormLabel>
+							<FormControl>
+								<Input
+									type="date"
+									value={currentEtapa.fecha_inicio}
+									onChange={(e) =>
+										updateEtapaField(
+											"fecha_inicio",
+											e.target.value
+										)
+									}
+								/>
+							</FormControl>
 						</div>
 
-						{/* Sección de Pedidos */}
-						<PedidosSection
-							pedidos={pedidos}
-							setPedidos={setPedidos}
-						/>
+						<div>
+							<FormLabel>Fecha de Fin *</FormLabel>
+							<FormControl>
+								<Input
+									type="date"
+									value={currentEtapa.fecha_fin}
+									onChange={(e) =>
+										updateEtapaField(
+											"fecha_fin",
+											e.target.value
+										)
+									}
+								/>
+							</FormControl>
+						</div>
+					</div>
 
-						<DialogFooter>
-							<Button
-								type="button"
-								variant="outline"
-								onClick={() => onOpenChange(false)}
-							>
-								Cancelar
-							</Button>
-							<Button type="submit">
-								<Plus className="mr-2 h-4 w-4" />
-								{etapa ? "Guardar Cambios" : "Agregar Etapa"}
-							</Button>
-						</DialogFooter>
-					</form>
-				</Form>
+					{/* Sección de Pedidos */}
+					<PedidosSection
+						pedidos={currentEtapa.pedidos}
+						setPedidos={updatePedidos}
+					/>
+
+					<DialogFooter>
+						<Button
+							type="button"
+							variant="outline"
+							onClick={() => onOpenChange(false)}
+						>
+							Cancelar
+						</Button>
+						<Button onClick={handleSave}>
+							<Plus className="mr-2 h-4 w-4" />
+							{etapaIndex !== null && etapaIndex !== undefined
+								? "Guardar Cambios"
+								: "Agregar Etapa"}
+						</Button>
+					</DialogFooter>
+				</div>
 			</DialogContent>
 		</Dialog>
 	);

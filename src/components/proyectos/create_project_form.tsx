@@ -4,8 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { proyectoSchema } from "@/schemas/proyecto";
+import { proyectoSchema, type ProyectoFormValues } from "@/schemas/proyecto";
 import {
 	Card,
 	CardContent,
@@ -19,6 +18,7 @@ import { Button } from "../ui/button";
 import { CheckCircle2 } from "lucide-react";
 import { DatosBasicosStep } from "./steps/datos-basicos-step";
 import { EtapasStep } from "./steps/etapas-step";
+import { ResumenStep } from "./steps/resumen-step";
 
 const TOTAL_STEPS = 3;
 export function CreateProjectForm() {
@@ -26,7 +26,7 @@ export function CreateProjectForm() {
 	const [currentStep, setCurrentStep] = useState(1);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
-	const form = useForm<z.infer<typeof proyectoSchema>>({
+	const form = useForm<ProyectoFormValues>({
 		resolver: zodResolver(proyectoSchema),
 		defaultValues: {
 			titulo: "",
@@ -44,7 +44,7 @@ export function CreateProjectForm() {
 	const progress = (currentStep / TOTAL_STEPS) * 100;
 
 	const validateCurrentStep = async () => {
-		let fieldsToValidate: (keyof z.infer<typeof proyectoSchema>)[] = [];
+		let fieldsToValidate: (keyof ProyectoFormValues)[] = [];
 
 		switch (currentStep) {
 			case 1:
@@ -59,6 +59,7 @@ export function CreateProjectForm() {
 				break;
 			case 2:
 				fieldsToValidate = ["etapas"];
+				break;
 		}
 
 		const isValid = await form.trigger(fieldsToValidate, {
@@ -80,7 +81,7 @@ export function CreateProjectForm() {
 		}
 	};
 
-	const onSubmit = async (data: z.infer<typeof proyectoSchema>) => {
+	const onSubmit = async (data: ProyectoFormValues) => {
 		setIsSubmitting(true);
 		try {
 			// Aquí irá la llamada a tu API
@@ -111,7 +112,7 @@ export function CreateProjectForm() {
 
 							{currentStep === 2 && <EtapasStep />}
 
-							{/* {currentStep === 3 && <ResumenStep form={form} />} */}
+							{currentStep === 3 && <ResumenStep />}
 						</CardContent>
 					</Card>
 

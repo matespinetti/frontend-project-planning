@@ -15,13 +15,15 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { PAISES, TIPOS_PROYECTO } from "@/consts/proyectos/form-options";
-import { useFormContext, UseFormReturn } from "react-hook-form";
+import { useFormContext } from "react-hook-form";
 
 export function DatosBasicosStep() {
 	const form = useFormContext();
 	return (
-		<div className="space-y-6">
+		<ScrollArea className="h-[500px]">
+			<div className="space-y-6 pr-4">
 			<div>
 				<h3 className="text-lg font-semibold mb-4">
 					Información del Proyecto
@@ -194,7 +196,8 @@ export function DatosBasicosStep() {
 						)}
 					/>
 				</div>
+				</div>
 			</div>
-		</div>
+		</ScrollArea>
 	);
 }
