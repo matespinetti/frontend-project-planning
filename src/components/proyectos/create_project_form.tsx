@@ -105,7 +105,7 @@ export function CreateProjectForm() {
 			<StepIndicator currentStep={currentStep} totalSteps={TOTAL_STEPS} />
 			{/* Contenido del formulario */}
 			<FormProvider {...form}>
-				<form onSubmit={form.handleSubmit(onSubmit)}>
+				<form onSubmit={(e) => e.preventDefault()}>
 					<Card>
 						<CardContent className="pt-6">
 							{currentStep === 1 && <DatosBasicosStep />}
@@ -135,8 +135,9 @@ export function CreateProjectForm() {
 									</Button>
 								) : (
 									<Button
-										type="submit"
+										type="button"
 										disabled={isSubmitting}
+										onClick={form.handleSubmit(onSubmit)}
 									>
 										{isSubmitting ? (
 											<>

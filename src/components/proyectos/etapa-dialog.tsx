@@ -20,10 +20,25 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Plus, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PedidosSection } from "./pedidos-section";
-import type { EtapaProyecto } from "@/types/proyecto";
 import type { ProyectoFormValues, EtapaFormValues } from "@/schemas/proyecto";
+
+// Helper function to format date to YYYY-MM-DD without timezone issues
+const formatDateToString = (date: Date): string => {
+	const year = date.getFullYear();
+	const month = String(date.getMonth() + 1).padStart(2, '0');
+	const day = String(date.getDate()).padStart(2, '0');
+	return `${year}-${month}-${day}`;
+};
+
+// Helper function to create Date from YYYY-MM-DD string without timezone issues
+const createDateFromString = (dateString: string): Date => {
+	const [year, month, day] = dateString.split('-').map(Number);
+	return new Date(year, month - 1, day); // month is 0-indexed in Date constructor
+};
 
 interface EtapaDialogProps {
 	open: boolean;
@@ -47,6 +62,8 @@ export function EtapaDialog({
 		fecha_fin: "",
 		pedidos: [],
 	});
+
+	const [dateError, setDateError] = useState<string | null>(null);
 
 	useEffect(() => {
 		if (open) {
@@ -72,6 +89,11 @@ export function EtapaDialog({
 	}, [open, etapaIndex, form]);
 
 	const handleSave = () => {
+		// Validate dates before saving
+		if (!validateDates()) {
+			return;
+		}
+
 		const etapas = form.getValues("etapas") || [];
 
 		if (etapaIndex !== null && etapaIndex !== undefined) {
@@ -92,6 +114,29 @@ export function EtapaDialog({
 
 	const updateEtapaField = (field: keyof EtapaFormValues, value: any) => {
 		setCurrentEtapa((prev) => ({ ...prev, [field]: value }));
+
+		// Clear date error when dates change
+		if (field === 'fecha_inicio' || field === 'fecha_fin') {
+			setDateError(null);
+		}
+	};
+
+	const validateDates = (): boolean => {
+		if (!currentEtapa.fecha_inicio || !currentEtapa.fecha_fin) {
+			setDateError("Ambas fechas son requeridas");
+			return false;
+		}
+
+		const startDate = createDateFromString(currentEtapa.fecha_inicio);
+		const endDate = createDateFromString(currentEtapa.fecha_fin);
+
+		if (endDate < startDate) {
+			setDateError("La fecha de fin debe ser posterior a la fecha de inicio");
+			return false;
+		}
+
+		setDateError(null);
+		return true;
 	};
 
 	const updatePedidos = (pedidos: any[]) => {
@@ -100,7 +145,7 @@ export function EtapaDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+			<DialogContent className="w-full max-w-lg sm:max-w-2xl lg:max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
 				<DialogHeader>
 					<DialogTitle>
 						{etapaIndex !== null && etapaIndex !== undefined
@@ -112,7 +157,7 @@ export function EtapaDialog({
 					</DialogDescription>
 				</DialogHeader>
 
-				<div className="space-y-6">
+				<div className="space-y-4 sm:space-y-6">
 					{/* Nombre */}
 					<div>
 						<FormLabel>Nombre de la Etapa *</FormLabel>
@@ -146,37 +191,44 @@ export function EtapaDialog({
 					</div>
 
 					{/* Fechas */}
-					<div className="grid grid-cols-2 gap-4">
-						<div>
-							<FormLabel>Fecha de Inicio *</FormLabel>
-							<FormControl>
-								<Input
-									type="date"
-									value={currentEtapa.fecha_inicio}
-									onChange={(e) =>
-										updateEtapaField(
-											"fecha_inicio",
-											e.target.value
-										)
-									}
-								/>
-							</FormControl>
-						</div>
+					<div className="space-y-3 sm:space-y-4">
+						{dateError && (
+							<Alert variant="destructive">
+								<AlertCircle className="h-4 w-4" />
+								<AlertDescription>{dateError}</AlertDescription>
+							</Alert>
+						)}
 
-						<div>
-							<FormLabel>Fecha de Fin *</FormLabel>
-							<FormControl>
-								<Input
-									type="date"
-									value={currentEtapa.fecha_fin}
-									onChange={(e) =>
-										updateEtapaField(
-											"fecha_fin",
-											e.target.value
-										)
-									}
-								/>
-							</FormControl>
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+							<div className="space-y-2">
+								<FormLabel>Fecha de Inicio *</FormLabel>
+								<FormControl>
+									<DatePicker
+										date={currentEtapa.fecha_inicio ? createDateFromString(currentEtapa.fecha_inicio) : undefined}
+										onSelect={(date) => {
+											const dateString = date ? formatDateToString(date) : '';
+											updateEtapaField('fecha_inicio', dateString);
+										}}
+										placeholder="Selecciona fecha de inicio"
+										className="w-full"
+									/>
+								</FormControl>
+							</div>
+
+							<div className="space-y-2">
+								<FormLabel>Fecha de Fin *</FormLabel>
+								<FormControl>
+									<DatePicker
+										date={currentEtapa.fecha_fin ? createDateFromString(currentEtapa.fecha_fin) : undefined}
+										onSelect={(date) => {
+											const dateString = date ? formatDateToString(date) : '';
+											updateEtapaField('fecha_fin', dateString);
+										}}
+										placeholder="Selecciona fecha de fin"
+										className="w-full"
+									/>
+								</FormControl>
+							</div>
 						</div>
 					</div>
 

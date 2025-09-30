@@ -78,7 +78,7 @@ export function PedidoDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent>
+			<DialogContent className="w-full max-w-lg sm:max-w-xl lg:max-w-2xl p-4 sm:p-6">
 				<DialogHeader>
 					<DialogTitle>
 						{pedido
@@ -90,7 +90,7 @@ export function PedidoDialog({
 					</DialogDescription>
 				</DialogHeader>
 
-				<div className="space-y-4">
+				<div className="space-y-4 sm:space-y-6">
 					{/* Tipo de Pedido */}
 					<div>
 						<FormLabel>Tipo de Pedido *</FormLabel>
@@ -133,8 +133,8 @@ export function PedidoDialog({
 
 					{/* Campos condicionales según el tipo */}
 					{esEconomico && (
-						<div className="grid grid-cols-3 gap-4">
-							<div className="col-span-2">
+						<div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+							<div className="sm:col-span-2">
 								<FormLabel>Monto</FormLabel>
 								<FormControl>
 									<Input
@@ -173,7 +173,7 @@ export function PedidoDialog({
 					)}
 
 					{esMaterial && (
-						<div className="grid grid-cols-2 gap-4">
+						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
 							<div>
 								<FormLabel>Cantidad</FormLabel>
 								<FormControl>
